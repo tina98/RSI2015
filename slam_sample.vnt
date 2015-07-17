@@ -1,0 +1,57 @@
+;;Random walk model to compare actual results/data against
+;;x/y/z coordinates of the drone, not the targets
+[define random_walk_motion_model
+	;;input with standard deviation of coordinates and direction
+	(lambda (x_std y_std z_std d_std)
+		(list
+			(lambda ()
+			;;assume-setting local x_std... variables to value of 
+			;;global (passed in) variables
+				(do (assume x_std ,x_std)
+					(assume y_std ,y_std)
+					(assume z_std ,z_std)
+					(assume direction_std ,d_std)))
+
+			(lambda (t)
+			;;let=evaluation with local variable
+				(let ((x_now (name 'x t))
+					  (y_now (name 'y t))
+					  (z_now (name 'z t))
+					  (d_now (name 'direction t))
+
+					  (x_then (name 'x (- t 1)))
+					  (y_then (name 'y (- t 1)))
+					  (z_then (name 'z (- t 1)))
+					  (d_then (name 'direction (- t 1))))
+					;;if time is ticking...
+					(if (> t 0)
+						;;initialize new x_now with normal distribution
+						;;picking random point from old average
+						(do (assume ,x_now (normal ,x_then x_std))
+							(assume ,y_now (normal ,y_then y_std))
+							(assume ,z_now (normal ,z_then z_std))
+							(assume ,d_now (normal ,d_then direction_std)))
+
+					pass)))
+			;;freeze the current datapoints
+			(lambda (t)
+				(let ((x_now (name 'x t))
+					  (y_now (name 'y t))
+					  (z_now (name 'z t))
+					  (d_now (name 'direction t)))
+					(do (freeze x_now)
+						(freeze y_now)
+						(freeze z_now)
+						(freeze d_now)
+
+						;;"forget" the old points
+						(if (>t 0)
+							(let ((x_then (name 'x (- t 1)))
+								  (y_then (name 'y (- t 1)))
+								  (z_then (name 'z (- t 1)))
+								  (d_then (name 'direction (- t 1))))
+								(do (forget x_then)
+									(forget y_then)
+									(forget z_then)
+									(forget h_then)))
+							pass))))))]
